@@ -13,6 +13,8 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as AuthLoginImport } from './routes/auth/login'
+import { Route as AuthLayoutImport } from './routes/auth/_layout'
 import { Route as websiteLayoutImport } from './routes/(website)/_layout'
 import { Route as websiteLayoutIndexImport } from './routes/(website)/_layout/index'
 import { Route as websiteLayoutContectImport } from './routes/(website)/_layout/contect'
@@ -20,13 +22,31 @@ import { Route as websiteLayoutAboutImport } from './routes/(website)/_layout/ab
 
 // Create Virtual Routes
 
+const AuthImport = createFileRoute('/auth')()
 const websiteImport = createFileRoute('/(website)')()
 
 // Create/Update Routes
 
+const AuthRoute = AuthImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const websiteRoute = websiteImport.update({
   id: '/(website)',
   getParentRoute: () => rootRoute,
+} as any)
+
+const AuthLoginRoute = AuthLoginImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+
+const AuthLayoutRoute = AuthLayoutImport.update({
+  id: '/_layout',
+  getParentRoute: () => AuthRoute,
 } as any)
 
 const websiteLayoutRoute = websiteLayoutImport.update({
@@ -69,6 +89,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof websiteLayoutImport
       parentRoute: typeof websiteRoute
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/_layout': {
+      id: '/auth/_layout'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthLayoutImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginImport
+      parentRoute: typeof AuthImport
     }
     '/(website)/_layout/about': {
       id: '/(website)/_layout/about'
@@ -123,13 +164,29 @@ const websiteRouteChildren: websiteRouteChildren = {
 const websiteRouteWithChildren =
   websiteRoute._addFileChildren(websiteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthLayoutRoute: typeof AuthLayoutRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthLayoutRoute: AuthLayoutRoute,
+  AuthLoginRoute: AuthLoginRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 export interface FileRoutesByFullPath {
   '/': typeof websiteLayoutIndexRoute
+  '/auth': typeof AuthLayoutRoute
+  '/auth/login': typeof AuthLoginRoute
   '/about': typeof websiteLayoutAboutRoute
   '/contect': typeof websiteLayoutContectRoute
 }
 
 export interface FileRoutesByTo {
+  '/auth': typeof AuthLayoutRoute
+  '/auth/login': typeof AuthLoginRoute
   '/about': typeof websiteLayoutAboutRoute
   '/contect': typeof websiteLayoutContectRoute
   '/': typeof websiteLayoutIndexRoute
@@ -139,6 +196,9 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/(website)': typeof websiteRouteWithChildren
   '/(website)/_layout': typeof websiteLayoutRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
+  '/auth/_layout': typeof AuthLayoutRoute
+  '/auth/login': typeof AuthLoginRoute
   '/(website)/_layout/about': typeof websiteLayoutAboutRoute
   '/(website)/_layout/contect': typeof websiteLayoutContectRoute
   '/(website)/_layout/': typeof websiteLayoutIndexRoute
@@ -146,13 +206,16 @@ export interface FileRoutesById {
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/contect'
+  fullPaths: '/' | '/auth' | '/auth/login' | '/about' | '/contect'
   fileRoutesByTo: FileRoutesByTo
-  to: '/about' | '/contect' | '/'
+  to: '/auth' | '/auth/login' | '/about' | '/contect' | '/'
   id:
     | '__root__'
     | '/(website)'
     | '/(website)/_layout'
+    | '/auth'
+    | '/auth/_layout'
+    | '/auth/login'
     | '/(website)/_layout/about'
     | '/(website)/_layout/contect'
     | '/(website)/_layout/'
@@ -161,10 +224,12 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   websiteRoute: typeof websiteRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
   websiteRoute: websiteRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -177,7 +242,8 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/(website)"
+        "/(website)",
+        "/auth"
       ]
     },
     "/(website)": {
@@ -194,6 +260,21 @@ export const routeTree = rootRoute
         "/(website)/_layout/contect",
         "/(website)/_layout/"
       ]
+    },
+    "/auth": {
+      "filePath": "auth",
+      "children": [
+        "/auth/_layout",
+        "/auth/login"
+      ]
+    },
+    "/auth/_layout": {
+      "filePath": "auth/_layout.tsx",
+      "parent": "/auth"
+    },
+    "/auth/login": {
+      "filePath": "auth/login.tsx",
+      "parent": "/auth"
     },
     "/(website)/_layout/about": {
       "filePath": "(website)/_layout/about.tsx",

@@ -27,7 +27,7 @@ export default function Navbar() {
           </NavbarLeft>
           <NavbarRight>
             <Button>
-            <a href="/" className="hidden text-sm md:block">
+            <a href="/auth/login" className="hidden text-sm md:block">
               Sign in
             </a>
             </Button>
