@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import {authRoute} from "./routes/auth"
 import {cors} from 'hono/cors'
 import { zValidator } from '@hono/zod-validator'
 import * as z from "zod"
