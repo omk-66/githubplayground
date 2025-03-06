@@ -1,6 +1,5 @@
-
-
-import Navbar from "@/components/navbar";
+import FooterSection from "@/components/sections/footer/default";
+import Navbar from "@/components/sections/navbar/default";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(website)/_layout")({
@@ -9,9 +8,10 @@ export const Route = createFileRoute("/(website)/_layout")({
 
 function RouteComponent() {
   return (
-    <div>
+    <div className="container mx-auto w-[80%]">
       <Navbar />
-      <Outlet />
+        <Outlet />
+      <FooterSection />
     </div>
   );
 }
