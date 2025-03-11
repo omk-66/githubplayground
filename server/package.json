@@ -1,0 +1,24 @@
+{
+  "name": "server",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "db:push": "bun drizzle-kit push",
+    "db:studio": "bun drizzle-kit studio"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.3",
+    "@kinde-oss/kinde-typescript-sdk": "^2.9.1",
+    "@neondatabase/serverless": "^0.10.4",
+    "better-auth": "^1.2.3",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.40.0",
+    "hono": "^4.7.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.13.9",
+    "drizzle-kit": "^0.30.5",
+    "tsx": "^4.19.3"
+  }
+}
