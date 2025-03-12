@@ -1,17 +1,8 @@
-import axios from "axios";
 import { createFileRoute } from "@tanstack/react-router";
 import { useSession } from "../../../../lib/auth-client";
-import { useEffect, useState } from "react";
-import Profile from "@/components/profile";
+import { useEffect } from "react";
+import { useGithubUserStore } from "@/store/githubUser.store";
 
-interface GitHubUser {
-  login: string;
-  avatar_url: string;
-  public_repos: number;
-  followers: number;
-  following: number;
-  created_at: string;
-}
 
 export const Route = createFileRoute("/user/_layout/dashboard")({
   component: RouteComponent,
@@ -19,26 +10,17 @@ export const Route = createFileRoute("/user/_layout/dashboard")({
 
 function RouteComponent() {
   const { data } = useSession();
-  const [githubUser, setGitHubUser] = useState<GitHubUser | null>(null);
-
+  const { githubUser, fetchGithubUser } = useGithubUserStore();
   // Fetch GitHub user data
   useEffect(() => {
-    const fetchGitHubUser = async () => {
-      try {
-        const response = await axios.get<GitHubUser>("https://api.github.com/users/omk-66");
-        setGitHubUser(response.data); // Set the fetched data to state
-      } catch (error) {
-        console.error("Error fetching GitHub user data:", error);
-      }
-    };
-
-    fetchGitHubUser();
-  }, []);
+    const name = data?.user.name;
+    if (name) {
+      fetchGithubUser(name);
+    }
+  }, [fetchGithubUser, data]);
 
   return (
     <div className="min-h-screen">
-      {/* Navbar */}
-      <Profile githubUser={githubUser} />
 
       {/* Main Content */}
       <div className="p-6">
@@ -48,6 +30,7 @@ function RouteComponent() {
             <p>Email: {data?.user.email}</p>
             <p>Name: {data?.user.name}</p>
             <p>Token: {data?.session.token}</p>
+            <p className="scroll-auto">{JSON.stringify(githubUser)}</p>
           </div>
         </div>
       </div>

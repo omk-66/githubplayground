@@ -9,8 +9,10 @@ import { Sheet, SheetContent, SheetTrigger } from "../../ui/sheet";
 import { Menu } from "lucide-react";
 import LaunchUI from "../../logos/launch-ui";
 import Profile from "@/components/profile";
+import { useGithubUserStore } from "@/store/githubUser.store";
 
 export default function UserNavbar() {
+    const { githubUser } = useGithubUserStore();
     return (
         <header className="sticky top-0 z-50 -mb-4 px-4 pb bg-background ">
             <div className="fade-bottom absolute left-0 h-24 w-full bg-background/15 backdrop-blur-lg"></div>
@@ -35,7 +37,7 @@ export default function UserNavbar() {
                         <Button variant="default" asChild>
                             <a href="/">Get Started</a>
                         </Button> */}
-                        <Profile githubUser={}/>
+                        <Profile githubUser={githubUser} />
                         <Sheet>
                             <SheetTrigger asChild>
                                 <Button
