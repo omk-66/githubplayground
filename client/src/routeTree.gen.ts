@@ -21,6 +21,7 @@ import { Route as websiteLayoutIndexImport } from './routes/(website)/_layout/in
 import { Route as UserLayoutDashboardImport } from './routes/user/_layout/dashboard'
 import { Route as websiteLayoutContectImport } from './routes/(website)/_layout/contect'
 import { Route as websiteLayoutAboutImport } from './routes/(website)/_layout/about'
+import { Route as UserLayoutRepoIdImport } from './routes/user/_layout/repo.$id'
 
 // Create Virtual Routes
 
@@ -90,6 +91,12 @@ const websiteLayoutAboutRoute = websiteLayoutAboutImport.update({
   id: '/about',
   path: '/about',
   getParentRoute: () => websiteLayoutRoute,
+} as any)
+
+const UserLayoutRepoIdRoute = UserLayoutRepoIdImport.update({
+  id: '/repo/$id',
+  path: '/repo/$id',
+  getParentRoute: () => UserLayoutRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -173,6 +180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof websiteLayoutIndexImport
       parentRoute: typeof websiteLayoutImport
     }
+    '/user/_layout/repo/$id': {
+      id: '/user/_layout/repo/$id'
+      path: '/repo/$id'
+      fullPath: '/user/repo/$id'
+      preLoaderRoute: typeof UserLayoutRepoIdImport
+      parentRoute: typeof UserLayoutImport
+    }
   }
 }
 
@@ -219,10 +233,12 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface UserLayoutRouteChildren {
   UserLayoutDashboardRoute: typeof UserLayoutDashboardRoute
+  UserLayoutRepoIdRoute: typeof UserLayoutRepoIdRoute
 }
 
 const UserLayoutRouteChildren: UserLayoutRouteChildren = {
   UserLayoutDashboardRoute: UserLayoutDashboardRoute,
+  UserLayoutRepoIdRoute: UserLayoutRepoIdRoute,
 }
 
 const UserLayoutRouteWithChildren = UserLayoutRoute._addFileChildren(
@@ -247,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof websiteLayoutAboutRoute
   '/contect': typeof websiteLayoutContectRoute
   '/user/dashboard': typeof UserLayoutDashboardRoute
+  '/user/repo/$id': typeof UserLayoutRepoIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -257,6 +274,7 @@ export interface FileRoutesByTo {
   '/contect': typeof websiteLayoutContectRoute
   '/user/dashboard': typeof UserLayoutDashboardRoute
   '/': typeof websiteLayoutIndexRoute
+  '/user/repo/$id': typeof UserLayoutRepoIdRoute
 }
 
 export interface FileRoutesById {
@@ -272,6 +290,7 @@ export interface FileRoutesById {
   '/(website)/_layout/contect': typeof websiteLayoutContectRoute
   '/user/_layout/dashboard': typeof UserLayoutDashboardRoute
   '/(website)/_layout/': typeof websiteLayoutIndexRoute
+  '/user/_layout/repo/$id': typeof UserLayoutRepoIdRoute
 }
 
 export interface FileRouteTypes {
@@ -284,6 +303,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contect'
     | '/user/dashboard'
+    | '/user/repo/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -293,6 +313,7 @@ export interface FileRouteTypes {
     | '/contect'
     | '/user/dashboard'
     | '/'
+    | '/user/repo/$id'
   id:
     | '__root__'
     | '/(website)'
@@ -306,6 +327,7 @@ export interface FileRouteTypes {
     | '/(website)/_layout/contect'
     | '/user/_layout/dashboard'
     | '/(website)/_layout/'
+    | '/user/_layout/repo/$id'
   fileRoutesById: FileRoutesById
 }
 
@@ -376,7 +398,8 @@ export const routeTree = rootRoute
       "filePath": "user/_layout.tsx",
       "parent": "/user",
       "children": [
-        "/user/_layout/dashboard"
+        "/user/_layout/dashboard",
+        "/user/_layout/repo/$id"
       ]
     },
     "/(website)/_layout/about": {
@@ -394,6 +417,10 @@ export const routeTree = rootRoute
     "/(website)/_layout/": {
       "filePath": "(website)/_layout/index.tsx",
       "parent": "/(website)/_layout"
+    },
+    "/user/_layout/repo/$id": {
+      "filePath": "user/_layout/repo.$id.tsx",
+      "parent": "/user/_layout"
     }
   }
 }

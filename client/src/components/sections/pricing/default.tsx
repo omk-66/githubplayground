@@ -140,7 +140,7 @@ export default function Pricing() {
                     )}
                   </div>
                 </div>
-                <Button variant={plan.cta.variant} size="lg" asChild>
+                <Button  size="lg" asChild>
                   <a href={plan.cta.href}>{plan.cta.label}</a>
                 </Button>
                 <p className="min-h-[40px] max-w-[220px] text-sm text-muted-foreground">

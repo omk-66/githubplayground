@@ -11,13 +11,14 @@ export const auth = betterAuth({
             session:session,
             account:account,
             verification:verification,
+
         }
     }),
     socialProviders: {
         github: {
             clientId: process.env.GITHUB_CLIENT_ID!,
             clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            // scope: ["user:email"],
+            scope: ["user:email"],
         }
     },
     trustedOrigins:["http://localhost:5173"],
