@@ -1,23 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "../../../../lib/auth-client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useGithubRepoStore } from "@/store/githubRepo.store";
 import { Button } from "@/components/ui/button";
 import { Star, GitFork, Code, Clock } from "lucide-react";
 import PlaygroundForm from "@/components/create-playground-form";
 import { useUserSession } from "@/store/userSession.store";
-import axios from "axios";
-
-type Playground = {
-  id: number;
-  name: string;
-  description: string;
-  visibility: 'public' | 'private';
-  tags: string[];
-  isFeatured: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
+import { usePlaygroundStore } from "@/store/playground.store";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/user/_layout/dashboard")({
   component: RouteComponent,
@@ -27,10 +17,8 @@ function RouteComponent() {
   const { data } = useSession();
   const { fetchGithubRepos, githubRepos, error, loading } = useGithubRepoStore();
   const { fetchSession, user } = useUserSession();
+  const { playgrounds, loading: playgroundsLoading, error: playgroundsError, fetchPlaygrounds } = usePlaygroundStore();
   const navigate = useNavigate();
-  const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
-  const [playgroundsLoading, setPlaygroundsLoading] = useState(false);
-  const [playgroundsError, setPlaygroundsError] = useState<string | null>(null);
 
   // Fetch GitHub repository data and user session
   useEffect(() => {
@@ -40,40 +28,19 @@ function RouteComponent() {
     }
   }, [data, fetchGithubRepos, fetchSession]);
 
-  // Fetch playgrounds for the logged-in user
+  // Fetch playgrounds when user is available
   useEffect(() => {
-    const fetchPlaygrounds = async () => {
-      if (!user?.id) return;
-
-      setPlaygroundsLoading(true);
-      setPlaygroundsError(null);
-
-      try {
-        const response = await axios.get(`http://localhost:3000/api/playground/${user.id}`, {
-          withCredentials: true // Important for session cookies
-        });
-
-        if (response.data.status === 'success') {
-          setPlaygrounds(response.data.data);
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch playgrounds');
-        }
-      } catch (err) {
-        setPlaygroundsError(
-          axios.isAxiosError(err)
-            ? err.response?.data?.message || err.message
-            : 'Failed to fetch playgrounds'
-        );
-      } finally {
-        setPlaygroundsLoading(false);
-      }
-    };
-
-    fetchPlaygrounds();
-  }, [user?.id]);
+    if (user?.id) {
+      fetchPlaygrounds(user.id);
+    }
+  }, [user?.id, fetchPlaygrounds]);
 
   const handleViewReport = (repoName: string) => {
     navigate({ to: "/user/repo/$id", params: { id: repoName } });
+  };
+
+  const handlePlaygroundClick = (playgroundId: number) => {
+    navigate({ to: "/user/playground/$id", params: { id: (playgroundId - 1).toString() } });
   };
 
   return (
@@ -89,23 +56,31 @@ function RouteComponent() {
             {/* Playgrounds Section */}
             <div>
               <h3 className="text-2xl font-semibold mb-4">Your Playgrounds</h3>
-              {playgroundsLoading && <p className="text-gray-600">Loading playgrounds...</p>}
+              {playgroundsLoading && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-40 rounded-lg" />
+                  ))}
+                </div>
+              )}
               {playgroundsError && (
                 <p className="text-red-500">{playgroundsError}</p>
               )}
-              {playgrounds.length > 0 ? (
+              {!playgroundsLoading && playgrounds.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {playgrounds.map((playground) => (
                     <div
                       key={playground.id}
-                      className="border p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow bg-primary-foreground"
+                      className="border p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow bg-primary-foreground cursor-pointer"
+                      onClick={() => handlePlaygroundClick(playground.id)}
                     >
                       <div className="flex justify-between items-start">
                         <h4 className="text-xl font-semibold">{playground.name}</h4>
-                        <span className={`text-xs px-2 py-1 rounded-full ${playground.visibility === 'public'
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          playground.visibility === 'public'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-purple-100 text-purple-800'
-                          }`}>
+                        }`}>
                           {playground.visibility}
                         </span>
                       </div>
@@ -143,13 +118,19 @@ function RouteComponent() {
             {/* GitHub Repositories Section */}
             <div>
               <h3 className="text-2xl font-semibold mb-4">Repositories</h3>
-              {loading && <p className="text-gray-600">Loading repositories...</p>}
+              {loading && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-48 rounded-lg" />
+                  ))}
+                </div>
+              )}
               {error && (
                 <p className="text-red-500">
                   Error: {typeof error === "string" ? error : "An unexpected error occurred."}
                 </p>
               )}
-              {githubRepos && (
+              {!loading && githubRepos && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {githubRepos.map((repo) => (
                     <div

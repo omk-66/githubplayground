@@ -22,6 +22,7 @@ import { Route as UserLayoutDashboardImport } from './routes/user/_layout/dashbo
 import { Route as websiteLayoutContectImport } from './routes/(website)/_layout/contect'
 import { Route as websiteLayoutAboutImport } from './routes/(website)/_layout/about'
 import { Route as UserLayoutRepoIdImport } from './routes/user/_layout/repo.$id'
+import { Route as UserLayoutPlaygroundIdImport } from './routes/user/_layout/playground.$id'
 
 // Create Virtual Routes
 
@@ -96,6 +97,12 @@ const websiteLayoutAboutRoute = websiteLayoutAboutImport.update({
 const UserLayoutRepoIdRoute = UserLayoutRepoIdImport.update({
   id: '/repo/$id',
   path: '/repo/$id',
+  getParentRoute: () => UserLayoutRoute,
+} as any)
+
+const UserLayoutPlaygroundIdRoute = UserLayoutPlaygroundIdImport.update({
+  id: '/playground/$id',
+  path: '/playground/$id',
   getParentRoute: () => UserLayoutRoute,
 } as any)
 
@@ -180,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof websiteLayoutIndexImport
       parentRoute: typeof websiteLayoutImport
     }
+    '/user/_layout/playground/$id': {
+      id: '/user/_layout/playground/$id'
+      path: '/playground/$id'
+      fullPath: '/user/playground/$id'
+      preLoaderRoute: typeof UserLayoutPlaygroundIdImport
+      parentRoute: typeof UserLayoutImport
+    }
     '/user/_layout/repo/$id': {
       id: '/user/_layout/repo/$id'
       path: '/repo/$id'
@@ -233,11 +247,13 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface UserLayoutRouteChildren {
   UserLayoutDashboardRoute: typeof UserLayoutDashboardRoute
+  UserLayoutPlaygroundIdRoute: typeof UserLayoutPlaygroundIdRoute
   UserLayoutRepoIdRoute: typeof UserLayoutRepoIdRoute
 }
 
 const UserLayoutRouteChildren: UserLayoutRouteChildren = {
   UserLayoutDashboardRoute: UserLayoutDashboardRoute,
+  UserLayoutPlaygroundIdRoute: UserLayoutPlaygroundIdRoute,
   UserLayoutRepoIdRoute: UserLayoutRepoIdRoute,
 }
 
@@ -263,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof websiteLayoutAboutRoute
   '/contect': typeof websiteLayoutContectRoute
   '/user/dashboard': typeof UserLayoutDashboardRoute
+  '/user/playground/$id': typeof UserLayoutPlaygroundIdRoute
   '/user/repo/$id': typeof UserLayoutRepoIdRoute
 }
 
@@ -274,6 +291,7 @@ export interface FileRoutesByTo {
   '/contect': typeof websiteLayoutContectRoute
   '/user/dashboard': typeof UserLayoutDashboardRoute
   '/': typeof websiteLayoutIndexRoute
+  '/user/playground/$id': typeof UserLayoutPlaygroundIdRoute
   '/user/repo/$id': typeof UserLayoutRepoIdRoute
 }
 
@@ -290,6 +308,7 @@ export interface FileRoutesById {
   '/(website)/_layout/contect': typeof websiteLayoutContectRoute
   '/user/_layout/dashboard': typeof UserLayoutDashboardRoute
   '/(website)/_layout/': typeof websiteLayoutIndexRoute
+  '/user/_layout/playground/$id': typeof UserLayoutPlaygroundIdRoute
   '/user/_layout/repo/$id': typeof UserLayoutRepoIdRoute
 }
 
@@ -303,6 +322,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contect'
     | '/user/dashboard'
+    | '/user/playground/$id'
     | '/user/repo/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -313,6 +333,7 @@ export interface FileRouteTypes {
     | '/contect'
     | '/user/dashboard'
     | '/'
+    | '/user/playground/$id'
     | '/user/repo/$id'
   id:
     | '__root__'
@@ -327,6 +348,7 @@ export interface FileRouteTypes {
     | '/(website)/_layout/contect'
     | '/user/_layout/dashboard'
     | '/(website)/_layout/'
+    | '/user/_layout/playground/$id'
     | '/user/_layout/repo/$id'
   fileRoutesById: FileRoutesById
 }
@@ -399,6 +421,7 @@ export const routeTree = rootRoute
       "parent": "/user",
       "children": [
         "/user/_layout/dashboard",
+        "/user/_layout/playground/$id",
         "/user/_layout/repo/$id"
       ]
     },
@@ -417,6 +440,10 @@ export const routeTree = rootRoute
     "/(website)/_layout/": {
       "filePath": "(website)/_layout/index.tsx",
       "parent": "/(website)/_layout"
+    },
+    "/user/_layout/playground/$id": {
+      "filePath": "user/_layout/playground.$id.tsx",
+      "parent": "/user/_layout"
     },
     "/user/_layout/repo/$id": {
       "filePath": "user/_layout/repo.$id.tsx",
