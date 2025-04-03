@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { zValidator } from "@hono/zod-validator";
-import * as z from "zod";
 import { auth } from "./lib/auth";
-import { logger } from "hono/logger";
-
+import { zValidator } from '@hono/zod-validator'
+import {playgroundFormSchema} from "../../client/src/type/playground.type"
+import { z } from "zod";
+import {db} from "../src/db/index"
+import { playgrounds } from "../auth-schema";
+import { eq } from "drizzle-orm";
 const app = new Hono<{
   Variables: {
     user: typeof auth.$Infer.Session.user | null;
@@ -12,76 +14,124 @@ const app = new Hono<{
   };
 }>();
 
-// app.use(logger());
+// 1. CORS Middleware
+app.use('*', cors({
+  origin: 'http://localhost:5173',
+  allowHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'],
+  credentials: true,
+  exposeHeaders: ['Content-Length']
+}))
 
-// app.use("*", async (c, next) => {
-//   console.log("Request origin:", c.req.header("Origin"));
-//   await next();
-// });
-app.use(
-  "/api/auth/*", // or replace with "*" to enable cors for all routes
-  cors({
-    origin: "http://localhost:5173", // replace with your origin
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["POST", "GET", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-    credentials: true,
-  })
-);
-
-
-app.use("*", async (c, next) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-
-  if (!session) {
-    c.set("user", null);
-    c.set("session", null);
-    return next();
+// 2. Session Middleware (better-auth)
+app.use('*', async (c, next) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: c.req.raw.headers
+    });
+    c.set('user', session?.user ?? null);
+    c.set('session', session?.session ?? null);
+  } catch (error) {
+    console.error('Session error:', error);
+    c.set('user', null);
+    c.set('session', null);
   }
-
-  c.set("user", session.user);
-  c.set("session", session.session);
-  return next();
+  await next();
 });
 
-export const schma = z.object({
-  id: z.number(),
-  name: z.string(),
-  markes: z.number(),
-});
-
-export type stateScham = z.infer<typeof schma>;
-
-app.on(["POST", "GET"], "/api/auth/*", (c) => {
-  // console.log("Request received at /api/auth/*");
-
+// 3. Auth Routes Handler (for better-auth specific routes)
+app.on(['POST', 'GET'], '/api/auth/*', (c) => {
   return auth.handler(c.req.raw);
 });
 
-app.get("/", (c) => {
-  return c.json({ name: "om", age: 20, markes: 50 });
+// 4. Your Protected Playground Endpoint
+app.post(
+  '/api/addPlayground',
+  zValidator("json", playgroundFormSchema),
+  async (c) => {
+    // Authentication check
+    const user = c.get('user');
+    if (!user) {
+      return c.json({ 
+        status: 'error',
+        message: 'Unauthorized - Please login first'
+      }, 401);
+    }
+
+    try {
+      // Get validated data
+      const validatedData = c.req.valid('json');
+      const [createdPlayground] = await db.insert(playgrounds).values({
+        name:validatedData.playgroundName,
+        description:validatedData.playgroundDescription,
+        tags:validatedData.tags || [],
+        visibility:validatedData.visibility,
+        creatorId:user.id,
+        isFeatured:validatedData.isFeatured || false
+      }).returning();
+      
+      // Process successful request
+      return c.json({
+        status: 'success',
+        message: 'Playground created',
+        data: createdPlayground // Return the actual created object
+      }, 201);
+
+    } catch (error) {
+      console.error('Playground creation error:', error);
+      
+      // Handle validation errors automatically caught by zValidator
+      if (error instanceof z.ZodError) {
+        return c.json({
+          status: 'error',
+          message: 'Validation failed',
+          errors: error.errors
+        }, 400);
+      }
+      
+      // Handle other errors
+      return c.json({
+        status: 'error',
+        message: 'Internal server error'
+      }, 500);
+    }
+  }
+);
+
+app.get('/api/playground/:userId', async (c) => {
+  try {
+    const { userId } = c.req.param();
+    
+    // Get playgrounds where user is creator
+    const createdPlaygrounds = await db
+      .select()
+      .from(playgrounds)
+      .where(eq(playgrounds.creatorId, userId));
+
+    // Get playgrounds where user is member
+    // const memberPlaygrounds = await db
+    //   .select({ playground: playgrounds })
+    //   .from(playgroundMembers)
+    //   .innerJoin(playgrounds, eq(playgroundMembers.playgroundId, playgrounds.id))
+    //   .where(eq(playgroundMembers.userId, userId));
+
+    // Combine results
+    const allPlaygrounds = [
+      ...createdPlaygrounds,
+      // ...memberPlaygrounds.map(p => p.playground)
+    ];
+
+    return c.json({
+      status: 'success',
+      data: allPlaygrounds
+    });
+  } catch (error) {
+    console.error(error);
+    return c.json({ status: 'error', message: 'Failed to fetch playgrounds' }, 500);
+  }
 });
-
-app.get("/me", (c) => {
-  return c.text("HELLOE");
-});
-
-app.post("/", zValidator("json", schma), async (c) => {
-  const data = c.req.valid("json");
-  return c.json(data);
-});
-
-app.get("/session", async (c) => {
-  const session = c.get("session");
-  const user = c.get("user");
-
-  if (!user) return c.body(null, 401);
-
-  return c.json({
-    session,
-    user,
-  });
-});
+// Other routes...
+app.get('/', (c) => c.json({ status: 'ok' }));
+app.get('/session', (c) => c.json({ user: c.get('user') }));
 
 export default app;

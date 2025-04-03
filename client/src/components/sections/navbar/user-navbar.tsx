@@ -10,11 +10,24 @@ import { Menu } from "lucide-react";
 import LaunchUI from "../../logos/launch-ui";
 import Profile from "@/components/profile";
 import { useGithubUserStore } from "@/store/githubUser.store";
+import { useEffect } from "react";
+import { useSession } from "../../../../lib/auth-client";
 
 export default function UserNavbar() {
-    const { githubUser } = useGithubUserStore();
+    const { data } = useSession();
+    const { fetchGithubUser, githubUser, error } = useGithubUserStore();
+    useEffect(() => {
+        if (data?.user?.name) {
+            fetchGithubUser(data.user.name);
+        }
+    }, [data, fetchGithubUser]);
     return (
         <header className="sticky top-0 z-50 -mb-4 px-4 pb bg-background ">
+            {error && (
+                <div className="text-red-500 text-sm">
+                    Failed to load user data
+                </div>
+            )}
             <div className="fade-bottom absolute left-0 h-24 w-full bg-background/15 backdrop-blur-lg"></div>
             <div className="relative mx-auto max-w-container">
                 <NavbarComponent>
@@ -37,7 +50,9 @@ export default function UserNavbar() {
                         <Button variant="default" asChild>
                             <a href="/">Get Started</a>
                         </Button> */}
-                        <Profile githubUser={githubUser} />
+                        <div className="border border-red-700">
+                            <Profile githubUser={githubUser} />
+                        </div>
                         <Sheet>
                             <SheetTrigger asChild>
                                 <Button

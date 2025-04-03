@@ -1,10 +1,23 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "../../../../lib/auth-client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useGithubRepoStore } from "@/store/githubRepo.store";
 import { Button } from "@/components/ui/button";
-import { Star, GitFork, Code, Clock } from "lucide-react"; // Using Lucide icons for consistency
+import { Star, GitFork, Code, Clock } from "lucide-react";
 import PlaygroundForm from "@/components/create-playground-form";
+import { useUserSession } from "@/store/userSession.store";
+import axios from "axios";
+
+type Playground = {
+  id: number;
+  name: string;
+  description: string;
+  visibility: 'public' | 'private';
+  tags: string[];
+  isFeatured: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export const Route = createFileRoute("/user/_layout/dashboard")({
   component: RouteComponent,
@@ -13,23 +26,58 @@ export const Route = createFileRoute("/user/_layout/dashboard")({
 function RouteComponent() {
   const { data } = useSession();
   const { fetchGithubRepos, githubRepos, error, loading } = useGithubRepoStore();
-  const navigate = useNavigate(); // Hook for navigation
+  const { fetchSession, user } = useUserSession();
+  const navigate = useNavigate();
+  const [playgrounds, setPlaygrounds] = useState<Playground[]>([]);
+  const [playgroundsLoading, setPlaygroundsLoading] = useState(false);
+  const [playgroundsError, setPlaygroundsError] = useState<string | null>(null);
 
-  // Fetch GitHub repository data
+  // Fetch GitHub repository data and user session
   useEffect(() => {
     if (data?.user?.name) {
       fetchGithubRepos(data.user.name);
+      fetchSession();
     }
-  }, [data, fetchGithubRepos]);
+  }, [data, fetchGithubRepos, fetchSession]);
 
-  // Handle "View Concise Report" button click
+  // Fetch playgrounds for the logged-in user
+  useEffect(() => {
+    const fetchPlaygrounds = async () => {
+      if (!user?.id) return;
+
+      setPlaygroundsLoading(true);
+      setPlaygroundsError(null);
+
+      try {
+        const response = await axios.get(`http://localhost:3000/api/playground/${user.id}`, {
+          withCredentials: true // Important for session cookies
+        });
+
+        if (response.data.status === 'success') {
+          setPlaygrounds(response.data.data);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch playgrounds');
+        }
+      } catch (err) {
+        setPlaygroundsError(
+          axios.isAxiosError(err)
+            ? err.response?.data?.message || err.message
+            : 'Failed to fetch playgrounds'
+        );
+      } finally {
+        setPlaygroundsLoading(false);
+      }
+    };
+
+    fetchPlaygrounds();
+  }, [user?.id]);
+
   const handleViewReport = (repoName: string) => {
     navigate({ to: "/user/repo/$id", params: { id: repoName } });
   };
 
   return (
     <div className="min-h-screen">
-      {/* Main Content */}
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-6">
@@ -37,17 +85,71 @@ function RouteComponent() {
             <PlaygroundForm />
           </div>
 
-          <div className="space-y-6">
-            {/* Display Repository Data */}
-            {loading && <p>Loading repositories...</p>}
-            {error && (
-              <p className="text-red-500">
-                Error: {typeof error === "string" ? error : "An unexpected error occurred."}
-              </p>
-            )}
-            {githubRepos && (
-              <div>
-                <h3 className="text-2xl font-semibold mb-4">Repositories</h3>
+          <div className="space-y-8">
+            {/* Playgrounds Section */}
+            <div>
+              <h3 className="text-2xl font-semibold mb-4">Your Playgrounds</h3>
+              {playgroundsLoading && <p className="text-gray-600">Loading playgrounds...</p>}
+              {playgroundsError && (
+                <p className="text-red-500">{playgroundsError}</p>
+              )}
+              {playgrounds.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {playgrounds.map((playground) => (
+                    <div
+                      key={playground.id}
+                      className="border p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow bg-primary-foreground"
+                    >
+                      <div className="flex justify-between items-start">
+                        <h4 className="text-xl font-semibold">{playground.name}</h4>
+                        <span className={`text-xs px-2 py-1 rounded-full ${playground.visibility === 'public'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-purple-100 text-purple-800'
+                          }`}>
+                          {playground.visibility}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 mt-2 text-sm">
+                        {playground.description || 'No description available'}
+                      </p>
+                      {playground.tags?.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {playground.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 bg-secondary text-secondary-foreground rounded-full text-xs"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+                        <span>
+                          Created: {new Date(playground.createdAt).toLocaleDateString()}
+                        </span>
+                        {playground.isFeatured && (
+                          <span className="text-yellow-500">⭐ Featured</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !playgroundsLoading && <p className="text-gray-600">No playgrounds found</p>
+              )}
+            </div>
+
+            {/* GitHub Repositories Section */}
+            <div>
+              <h3 className="text-2xl font-semibold mb-4">Repositories</h3>
+              {loading && <p className="text-gray-600">Loading repositories...</p>}
+              {error && (
+                <p className="text-red-500">
+                  Error: {typeof error === "string" ? error : "An unexpected error occurred."}
+                </p>
+              )}
+              {githubRepos && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {githubRepos.map((repo) => (
                     <div
@@ -55,7 +157,6 @@ function RouteComponent() {
                       className="border p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow bg-primary-foreground"
                     >
                       <div className="flex flex-col justify-between items-start mb-4">
-                        {/* Repository Name and Description */}
                         <div>
                           <a
                             href={repo.html_url}
@@ -70,9 +171,7 @@ function RouteComponent() {
                           </p>
                         </div>
 
-                        {/* Button Section */}
                         <div className="mt-4 w-full flex flex-col gap-3">
-                          {/* View on GitHub Button */}
                           <Button
                             variant="link"
                             className="text-primary hover:underline font-semibold text-sm"
@@ -86,7 +185,6 @@ function RouteComponent() {
                             </a>
                           </Button>
 
-                          {/* View Concise Report Button */}
                           <Button
                             variant="default"
                             onClick={() => handleViewReport(repo.name)}
@@ -96,21 +194,17 @@ function RouteComponent() {
                           </Button>
                         </div>
 
-                        {/* Repository Metadata */}
                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm text-gray-600">
-                          {/* Stars */}
                           <div className="flex items-center space-x-2">
                             <Star className="h-5 w-5 text-yellow-500" />
                             <span>{repo.stargazers_count}</span>
                           </div>
 
-                          {/* Forks */}
                           <div className="flex items-center space-x-2">
                             <GitFork className="h-5 w-5 text-blue-500" />
                             <span>{repo.forks_count}</span>
                           </div>
 
-                          {/* Language */}
                           {repo.language && (
                             <div className="flex items-center space-x-2">
                               <Code className="h-5 w-5 text-green-500" />
@@ -118,7 +212,6 @@ function RouteComponent() {
                             </div>
                           )}
 
-                          {/* Last Updated */}
                           <div className="flex items-center space-x-2">
                             <Clock className="h-5 w-5 text-purple-500" />
                             <span>
@@ -130,8 +223,8 @@ function RouteComponent() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -12,24 +12,54 @@ interface GitHubUser {
 
 interface GithubUserStore {
     githubUser: GitHubUser | null;
+    loading: boolean;
+    error: string | null;
     fetchGithubUser: (username: string) => Promise<void>;
+    reset: () => void;
 }
 
-export const useGithubUserStore = create<GithubUserStore>((set,get) => ({
+export const useGithubUserStore = create<GithubUserStore>((set) => ({
     githubUser: null,
+    loading: false,
+    error: null,
+
     fetchGithubUser: async (username: string) => {
-        if (get().githubUser !== null) {
-            return;
-        }
+        set({ loading: true, error: null });
+
         try {
             const response = await axios.get<GitHubUser>(
-                `https://api.github.com/users/${username}`
+                `https://api.github.com/users/${username}`,
+                {
+                    headers: {
+                        Accept: 'application/vnd.github.v3+json'
+                    },
+                    timeout: 5000
+                }
             );
-            set({ githubUser: response.data }); // Update state with fetched data
+
+            set({
+                githubUser: response.data,
+                loading: false,
+                error: null
+            });
+
         } catch (error) {
-            console.error("Error fetching GitHub user data:", error);
-            set({ githubUser: null }); // Reset state on error
+            let errorMessage = "Failed to fetch user data";
+
+            if (axios.isAxiosError(error)) {
+                errorMessage = error.response?.data?.message ||
+                    error.message ||
+                    "Unknown API error";
+            }
+
+            console.error("GitHub API error:", error);
+            set({
+                githubUser: null,
+                loading: false,
+                error: errorMessage
+            });
         }
     },
 
+    reset: () => set({ githubUser: null, error: null })
 }));

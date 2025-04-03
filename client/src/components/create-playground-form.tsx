@@ -8,11 +8,10 @@ import {
     SelectLabel,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select"
-import { z } from "zod";
+} from "@/components/ui/select";
 import {
     Dialog,
-    DialogClose,
+    // DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -33,40 +32,42 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { useState } from "react";
+import { playgroundFormSchema, PlaygroundFormValues } from "@/type/playground.type";
 
 // Define the Zod schema
-export const playgroundFormSchema = z.object({
-    playgroundName: z
-        .string()
-        .min(2, { message: "Playground name must be at least 2 characters long." })
-        .max(50, { message: "Playground name cannot exceed 50 characters." })
-        .refine((value) => value.trim().length > 0, {
-            message: "Playground name cannot be empty or contain only whitespace.",
-        }),
+// export const playgroundFormSchema = z.object({
+//     playgroundName: z
+//         .string()
+//         .min(2, { message: "Playground name must be at least 2 characters long." })
+//         .max(50, { message: "Playground name cannot exceed 50 characters." })
+//         .refine((value) => value.trim().length > 0, {
+//             message: "Playground name cannot be empty or contain only whitespace.",
+//         }),
 
-    playgroundDescription: z
-        .string()
-        .min(10, { message: "Description must be at least 10 characters long." })
-        .max(200, { message: "Description cannot exceed 200 characters." })
-        .refine((value) => value.trim().length > 0, {
-            message: "Description cannot be empty or contain only whitespace.",
-        }),
+//     playgroundDescription: z
+//         .string()
+//         .min(10, { message: "Description must be at least 10 characters long." })
+//         .max(200, { message: "Description cannot exceed 200 characters." })
+//         .refine((value) => value.trim().length > 0, {
+//             message: "Description cannot be empty or contain only whitespace.",
+//         }),
 
-    visibility: z.enum(["public", "private"]).default("public"),
+//     visibility: z.enum(["public", "private"]).default("public"),
 
-    tags: z
-        .array(z.string().min(1).max(20))
-        .max(5, { message: "You can add up to 5 tags." })
-        .optional(),
+//     tags: z
+//         .array(z.string().min(1).max(20))
+//         .max(5, { message: "You can add up to 5 tags." })
+//         .optional(),
 
-    isFeatured: z.boolean().default(false), // Optional: Add if needed
-});
+//     isFeatured: z.boolean().default(false),
+// });
 
-// Infer the type of the schema for use in your form
-export type PlaygroundFormValues = z.infer<typeof playgroundFormSchema>;
+// export type PlaygroundFormValues = z.infer<typeof playgroundFormSchema>;
 
 export default function PlaygroundForm() {
-    // Initialize the form
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const form = useForm<PlaygroundFormValues>({
         resolver: zodResolver(playgroundFormSchema),
         defaultValues: {
@@ -78,13 +79,41 @@ export default function PlaygroundForm() {
         },
     });
 
-    // Define a submit handler
-    function onSubmit(values: PlaygroundFormValues) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
-        console.log("Form values submitted:", values);
-    }
+    const onSubmit = async (values: PlaygroundFormValues) => {
+        setIsSubmitting(true);
+        try {
+            const response = await fetch('http://localhost:3000/api/addPlayground', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Required for better-auth cookies
+                body: JSON.stringify(values)
+            });
 
+            // Handle HTTP errors
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                if (response.status === 401) {
+                    // Handle unauthorized (redirect to login)
+                    window.location.href = '/auth/login';
+                    return;
+                }
+                throw new Error(errorData.message || 'Request failed');
+            }
+
+            // Handle success
+            const data = await response.json();
+            toast.success(data.message || 'Playground created!');
+            form.reset();
+
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Creation failed');
+            console.error('Submission error:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
     return (
         <div>
             <Form {...form}>
@@ -109,7 +138,11 @@ export default function PlaygroundForm() {
                                     <FormItem>
                                         <FormLabel>Playground Name</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="My Playground" {...field} />
+                                            <Input
+                                                placeholder="My Playground"
+                                                {...field}
+                                                disabled={isSubmitting}
+                                            />
                                         </FormControl>
                                         <FormDescription>
                                             Choose a name for your playground.
@@ -130,6 +163,7 @@ export default function PlaygroundForm() {
                                             <Textarea
                                                 placeholder="Describe your playground..."
                                                 {...field}
+                                                disabled={isSubmitting}
                                             />
                                         </FormControl>
                                         <FormDescription>
@@ -148,25 +182,19 @@ export default function PlaygroundForm() {
                                     <FormItem>
                                         <FormLabel>Visibility</FormLabel>
                                         <FormControl>
-                                            {/* <select
-                                                {...field}
-                                                className="w-full p-2 border rounded"
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                disabled={isSubmitting}
                                             >
-                                                <option value="public">Public</option>
-                                                <option value="private">Private</option>
-                                            </select> */}
-                                            <Select {...field}>
                                                 <SelectTrigger className="w-[180px]">
-                                                    <SelectValue placeholder="Select a type" />
+                                                    <SelectValue placeholder="Select visibility" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
-                                                        <SelectLabel>Fruits</SelectLabel>
-                                                        <SelectItem value="apple">Public</SelectItem>
-                                                        <SelectItem value="banana">Private</SelectItem>
-                                                        {/* <SelectItem value="blueberry">Blueberry</SelectItem>
-                                                        <SelectItem value="grapes">Grapes</SelectItem>
-                                                        <SelectItem value="pineapple">Pineapple</SelectItem> */}
+                                                        <SelectLabel>Visibility</SelectLabel>
+                                                        <SelectItem value="public">Public</SelectItem>
+                                                        <SelectItem value="private">Private</SelectItem>
                                                     </SelectGroup>
                                                 </SelectContent>
                                             </Select>
@@ -188,12 +216,13 @@ export default function PlaygroundForm() {
                                         <FormLabel>Tags</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="Add tags (comma-separated)"
-                                                {...field}
+                                                placeholder="react, typescript, nextjs"
+                                                disabled={isSubmitting}
                                                 onChange={(e) => {
                                                     const tags = e.target.value
                                                         .split(",")
-                                                        .map((tag) => tag.trim());
+                                                        .map((tag) => tag.trim())
+                                                        .filter(Boolean);
                                                     field.onChange(tags);
                                                 }}
                                             />
@@ -206,39 +235,44 @@ export default function PlaygroundForm() {
                                 )}
                             />
 
-                            {/* Is Featured (Optional) */}
+                            {/* Is Featured */}
                             <FormField
                                 control={form.control}
                                 name="isFeatured"
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Featured</FormLabel>
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                         <FormControl>
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
+                                                disabled={isSubmitting}
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Mark this playground as featured.
-                                        </FormDescription>
-                                        <FormMessage />
+                                        <div className="space-y-1 leading-none">
+                                            <FormLabel>Featured</FormLabel>
+                                            <FormDescription>
+                                                Mark this playground as featured.
+                                            </FormDescription>
+                                        </div>
                                     </FormItem>
                                 )}
                             />
 
                             <DialogFooter className="sm:justify-start">
-                                {form.formState.isValid ? (
-                                    <DialogClose>
-                                        <Button type="submit" variant="secondary">
-                                            Save Playground
-                                        </Button>
-                                    </DialogClose>
-                                ) : (
-                                    <Button type="submit" variant="secondary">
-                                        Save Playground
-                                    </Button>
-                                )}
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <span className="flex items-center">
+                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Creating...
+                                        </span>
+                                    ) : "Create Playground"}
+                                </Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>

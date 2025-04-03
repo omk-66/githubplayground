@@ -1,24 +1,19 @@
-// import { useState } from "react";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button"
+"use client"
+
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
-    // DropdownMenuPortal,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    // DropdownMenuSub,
-    // DropdownMenuSubContent,
-    // DropdownMenuSubTrigger,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import { AvatarFallback, AvatarImage, Avatar } from "./ui/avatar";
 import { signOut, useSession } from "../../lib/auth-client";
 import { useRouter } from "@tanstack/react-router";
-
+import { Skeleton } from "./ui/skeleton";
+import { toast } from "sonner";
 
 interface GitHubUser {
     login: string;
@@ -31,90 +26,143 @@ interface GitHubUser {
 
 interface ProfileProps {
     githubUser: GitHubUser | null;
+    isLoading?: boolean;
+    error?: string | null;
 }
 
-const Profile = ({ githubUser }: ProfileProps) => {
+const Profile = ({ githubUser, isLoading = false, error = null }: ProfileProps) => {
     const { data } = useSession();
     const router = useRouter();
-    const handlesignout = async () => {
+
+    const handleSignOut = async () => {
+        const toastId = toast.loading("Signing out...");
+
         try {
             await signOut({
                 fetchOptions: {
                     onSuccess: () => {
-                        router.navigate({ to: "/" })
+                        toast.success("Signed out successfully", {
+                            id: toastId,
+                            description: "You have been logged out",
+                        });
+                        router.navigate({ to: "/" });
                     },
                 },
             });
         } catch (error) {
-            console.error("Sign-in failed:", error);
-            // Handle error gracefully, e.g., display a message to the user
+            console.error("Sign-out failed:", error);
+            toast.error("Sign out failed", {
+                id: toastId,
+                description: "Please try again",
+            });
         }
     };
-    return (
-        <nav className="shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                    <div className="flex items-center">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <Avatar>
-                                        <AvatarImage src={githubUser?.avatar_url} alt={githubUser?.login} />
-                                        <AvatarFallback>
-                                            {githubUser ? githubUser.login.charAt(0).toUpperCase() : "U"}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56">
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    <DropdownMenuItem>
-                                        Name
-                                        <DropdownMenuShortcut>{data?.user.name}</DropdownMenuShortcut>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        Followers
-                                        <DropdownMenuShortcut>{githubUser?.followers}</DropdownMenuShortcut>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        Followings
-                                        <DropdownMenuShortcut>{githubUser?.following}</DropdownMenuShortcut>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        Public Repos
-                                        <DropdownMenuShortcut>{githubUser?.public_repos}</DropdownMenuShortcut>
-                                    </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                    <div>
-                                        <div>
-                                            <Avatar>
-                                                <AvatarImage src={githubUser?.avatar_url} alt={githubUser?.login} />
-                                                <AvatarFallback>
-                                                    {githubUser ? githubUser.login.charAt(0).toUpperCase() : "U"}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        </div>
-                                        <div>
-                                            {data?.user.email}
-                                        </div>
-                                    </div>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                    <Button variant={"destructive"} className="w-full" onClick={handlesignout}>Log out</Button>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-[100px]" />
                 </div>
             </div>
-        </nav>
+        );
+    }
+
+    if (error) {
+        toast.error("Error loading profile data");
+        return (
+            <div className="text-red-500 text-sm p-2 border border-red-200 rounded">
+                Error loading profile
+            </div>
+        );
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                    <AvatarImage
+                        src={githubUser?.avatar_url}
+                        alt={githubUser?.login || "User avatar"}
+                    />
+                    <AvatarFallback>
+                        {githubUser ?
+                            githubUser.login.charAt(0).toUpperCase() :
+                            data?.user.name?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                className="w-56"
+                align="end"
+                onInteractOutside={(e) => e.preventDefault()}
+            >
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                <DropdownMenuGroup>
+                    <DropdownMenuItem>
+                        <span>Name</span>
+                        <span className="ml-auto font-medium">
+                            {data?.user.name || "N/A"}
+                        </span>
+                    </DropdownMenuItem>
+
+                    {githubUser && (
+                        <>
+                            <DropdownMenuItem>
+                                <span>Followers</span>
+                                <span className="ml-auto font-medium">
+                                    {githubUser.followers.toLocaleString()}
+                                </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <span>Following</span>
+                                <span className="ml-auto font-medium">
+                                    {githubUser.following.toLocaleString()}
+                                </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <span>Public Repos</span>
+                                <span className="ml-auto font-medium">
+                                    {githubUser.public_repos.toLocaleString()}
+                                </span>
+                            </DropdownMenuItem>
+                        </>
+                    )}
+                </DropdownMenuGroup>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem className="gap-3">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={githubUser?.avatar_url} />
+                        <AvatarFallback>
+                            {data?.user.name?.charAt(0).toUpperCase() || "U"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                        <span className="font-medium">{data?.user.name || "User"}</span>
+                        <span className="text-xs text-muted-foreground">
+                            {data?.user.email || "No email"}
+                        </span>
+                    </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem asChild>
+                    <button
+                        onClick={handleSignOut}
+                        className="w-full text-red-600 hover:bg-red-50/50 p-2 rounded-md cursor-pointer flex items-center gap-2"
+                    >
+                        <span>Log out</span>
+                    </button>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 };
 
 export default Profile;
-

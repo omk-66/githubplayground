@@ -28,6 +28,9 @@ export const useGithubReportStore = create<GithubReportStore>((set) => ({
 
     // Function to fetch commit history
     fetchCommitHistory: async (repoName: string) => {
+        // if (get().commitData.length !== null) {
+        //     return;
+        // }
         set({ loading: true, error: null }); // Set loading state
 
         try {
