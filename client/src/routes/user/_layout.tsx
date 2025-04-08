@@ -4,6 +4,7 @@
 // import UserNavbar from "@/components/sections/navbar/user-navbar";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner"
+// import UserNavbar from "@/components/sections/navbar/user-navbar";
 
 
 export const Route = createFileRoute("/user/_layout")({

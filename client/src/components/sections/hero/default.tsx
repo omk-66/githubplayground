@@ -5,24 +5,25 @@ import { ArrowRightIcon } from "lucide-react";
 import { Section } from "../../ui/section";
 import { Mockup, MockupFrame } from "../../ui/mockup";
 import Glow from "../../ui/glow";
-import { useTheme } from "next-themes";
+// import { useTheme } from "next-themes";
 import Github from "../../logos/github";
+import img from "../../../assets/hero.png"
 
 export default function Hero() {
-  const { resolvedTheme } = useTheme();
-  let src;
+  // const { resolvedTheme } = useTheme();
+  // let src;
 
-  switch (resolvedTheme) {
-    case "light":
-      src = "/app-light.png";
-      break;
-    case "dark":
-      src = "/app-dark.png";
-      break;
-    default:
-      src = "/app-dark.png";
-      break;
-  }
+  // switch (resolvedTheme) {
+  //   case "light":
+  //     src = "/app-light.png";
+  //     break;
+  //   case "dark":
+  //     src = "img";
+  //     break;
+  //   default:
+  //     src = "/app-dark.png";
+  //     break;
+  // }
 
   return (
     <Section className="fade-bottom overflow-hidden pb-0 sm:pb-0 md:pb-0 -mt-25">
@@ -52,7 +53,7 @@ export default function Hero() {
               <Button variant="default" size="lg" asChild>
                 <a href="/">Get Started</a>
               </Button>
-              <Button variant="glow" size="lg" asChild>
+              <Button  size="lg" asChild>
                 <a href="/">
                   <Github className="mr-2 h-4 w-4" /> Github
                 </a>
@@ -66,7 +67,7 @@ export default function Hero() {
             >
               <Mockup type="responsive">
               <img
-                  src={src}
+                  src={img}
                   alt="Launch UI app screenshot"
                   width={1248}
                   height={765}
