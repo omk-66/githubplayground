@@ -99,39 +99,99 @@ app.post(
 );
 
 app.get('/api/playground/:userId', async (c) => {
+  // Add authentication check
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ status: 'error', message: 'Unauthorized' }, 401);
+  }
+
   try {
     const { userId } = c.req.param();
     
-    // Get playgrounds where user is creator
+    // Verify the requesting user matches the userId
+    if (user.id !== userId) {
+      return c.json({ 
+        status: 'error', 
+        message: 'Unauthorized access' 
+      }, 403);
+    }
+
     const createdPlaygrounds = await db
       .select()
       .from(playgrounds)
       .where(eq(playgrounds.creatorId, userId));
 
-    // Get playgrounds where user is member
-    // const memberPlaygrounds = await db
-    //   .select({ playground: playgrounds })
-    //   .from(playgroundMembers)
-    //   .innerJoin(playgrounds, eq(playgroundMembers.playgroundId, playgrounds.id))
-    //   .where(eq(playgroundMembers.userId, userId));
-
-    // Combine results
-    const allPlaygrounds = [
-      ...createdPlaygrounds,
-      // ...memberPlaygrounds.map(p => p.playground)
-    ];
+    // Add debug logging
+    console.log(`Found ${createdPlaygrounds.length} playgrounds for user ${userId}`);
 
     return c.json({
       status: 'success',
-      data: allPlaygrounds
+      data: createdPlaygrounds
     });
   } catch (error) {
-    console.error(error);
-    return c.json({ status: 'error', message: 'Failed to fetch playgrounds' }, 500);
+    console.error('Server error:', error);
+    return c.json({ 
+      status: 'error', 
+      message: 'Failed to fetch playgrounds',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 // Other routes...
 app.get('/', (c) => c.json({ status: 'ok' }));
 app.get('/session', (c) => c.json({ user: c.get('user') }));
+
+// delete playground for end point 
+app.delete('/api/playground/:playgroundId', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ 
+      status: 'error',
+      message: 'Unauthorized - Please login first'
+    }, 401);
+  }
+
+  try {
+    const { playgroundId } = c.req.param();
+    
+    // First check if the playground exists and belongs to the user
+    const [playground] = await db
+      .select()
+      .from(playgrounds)
+      .where(eq(playgrounds.id, parseInt(playgroundId)))
+      .limit(1);
+
+    if (!playground) {
+      return c.json({
+        status: 'error',
+        message: 'Playground not found'
+      }, 404);
+    }
+
+    if (playground.creatorId !== user.id) {
+      return c.json({
+        status: 'error',
+        message: 'You are not authorized to delete this playground'
+      }, 403);
+    }
+
+    // Delete the playground
+    await db
+      .delete(playgrounds)
+      .where(eq(playgrounds.id, parseInt(playgroundId)));
+
+    return c.json({
+      status: 'success',
+      message: 'Playground deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete playground error:', error);
+    return c.json({
+      status: 'error',
+      message: 'Internal server error'
+    }, 500);
+  }
+});
 
 export default app;
