@@ -143,6 +143,7 @@ app.get('/session', (c) => c.json({ user: c.get('user') }));
 
 // delete playground for end point 
 app.delete('/api/playground/:playgroundId', async (c) => {
+  console.log("inside delet end point")
   const user = c.get('user');
   if (!user) {
     return c.json({ 

@@ -68,7 +68,7 @@ export const usePlaygroundStore = create<PlaygroundStore>((set, get) => ({
         try {
             set({ loading: true, error: null });
 
-            const response = await axios.delete(`/api/playground/${playgroundId}`, {
+            const response = await axios.delete(`http://localhost:3000/api/playground/${playgroundId}`, {
                 withCredentials: true,
                 headers: {
                     'Accept': 'application/json',

@@ -1,5 +1,6 @@
-"use client"
+"use client";
 
+import { useState } from "react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,10 +34,10 @@ interface ProfileProps {
 const Profile = ({ githubUser, isLoading = false, error = null }: ProfileProps) => {
     const { data } = useSession();
     const router = useRouter();
+    const [isOpen, setIsOpen] = useState(false);
 
     const handleSignOut = async () => {
         const toastId = toast.loading("Signing out...");
-
         try {
             await signOut({
                 fetchOptions: {
@@ -46,6 +47,7 @@ const Profile = ({ githubUser, isLoading = false, error = null }: ProfileProps) 
                             description: "You have been logged out",
                         });
                         router.navigate({ to: "/" });
+                        setIsOpen(false); // Close dropdown after sign out
                     },
                 },
             });
@@ -79,53 +81,71 @@ const Profile = ({ githubUser, isLoading = false, error = null }: ProfileProps) 
     }
 
     return (
-        <DropdownMenu>
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                    <AvatarImage
-                        src={githubUser?.avatar_url}
-                        alt={githubUser?.login || "User avatar"}
-                    />
-                    <AvatarFallback>
-                        {githubUser ?
-                            githubUser.login.charAt(0).toUpperCase() :
-                            data?.user.name?.charAt(0).toUpperCase() || "U"}
-                    </AvatarFallback>
-                </Avatar>
+                <button
+                    className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOpen(!isOpen);
+                    }}
+                >
+                    <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                        <AvatarImage
+                            src={githubUser?.avatar_url}
+                            alt={githubUser?.login || "User avatar"}
+                        />
+                        <AvatarFallback>
+                            {githubUser
+                                ? githubUser.login.charAt(0).toUpperCase()
+                                : data?.user.name?.charAt(0).toUpperCase() || "U"}
+                        </AvatarFallback>
+                    </Avatar>
+                </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-                className="w-56"
-                align="end"
-                onInteractOutside={(e) => e.preventDefault()}
-            >
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
 
-                <DropdownMenuGroup>
-                    <DropdownMenuItem>
+            <DropdownMenuContent
+                className="w-56 z-[100] bg-background shadow-lg rounded-md border border-border"
+                align="end"
+                sideOffset={8}
+                onInteractOutside={(e) => {
+                    // Prevent closing when clicking on the trigger
+                    const target = e.target as HTMLElement;
+                    if (target.closest('[data-radix-dropdown-menu-trigger]')) {
+                        e.preventDefault();
+                    }
+                }}
+            >
+                <DropdownMenuLabel className="px-4 py-2 font-medium text-foreground">
+                    My Account
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border" />
+
+                <DropdownMenuGroup className="px-2 py-1">
+                    <DropdownMenuItem className="flex justify-between items-center px-2 py-1.5 rounded text-sm hover:bg-accent">
                         <span>Name</span>
-                        <span className="ml-auto font-medium">
+                        <span className="font-medium">
                             {data?.user.name || "N/A"}
                         </span>
                     </DropdownMenuItem>
 
                     {githubUser && (
                         <>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="flex justify-between items-center px-2 py-1.5 rounded text-sm hover:bg-accent">
                                 <span>Followers</span>
-                                <span className="ml-auto font-medium">
+                                <span className="font-medium">
                                     {githubUser.followers.toLocaleString()}
                                 </span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="flex justify-between items-center px-2 py-1.5 rounded text-sm hover:bg-accent">
                                 <span>Following</span>
-                                <span className="ml-auto font-medium">
+                                <span className="font-medium">
                                     {githubUser.following.toLocaleString()}
                                 </span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="flex justify-between items-center px-2 py-1.5 rounded text-sm hover:bg-accent">
                                 <span>Public Repos</span>
-                                <span className="ml-auto font-medium">
+                                <span className="font-medium">
                                     {githubUser.public_repos.toLocaleString()}
                                 </span>
                             </DropdownMenuItem>
@@ -133,9 +153,9 @@ const Profile = ({ githubUser, isLoading = false, error = null }: ProfileProps) 
                     )}
                 </DropdownMenuGroup>
 
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-border" />
 
-                <DropdownMenuItem className="gap-3">
+                <DropdownMenuItem className="flex items-center gap-3 px-2 py-2 rounded text-sm hover:bg-accent">
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={githubUser?.avatar_url} />
                         <AvatarFallback>
@@ -150,12 +170,12 @@ const Profile = ({ githubUser, isLoading = false, error = null }: ProfileProps) 
                     </div>
                 </DropdownMenuItem>
 
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-border" />
 
                 <DropdownMenuItem asChild>
                     <button
                         onClick={handleSignOut}
-                        className="w-full text-red-600 hover:bg-red-50/50 p-2 rounded-md cursor-pointer flex items-center gap-2"
+                        className="w-full text-left px-2 py-1.5 rounded text-sm text-destructive hover:bg-red-50/50 dark:hover:bg-red-900/20 flex items-center gap-2"
                     >
                         <span>Log out</span>
                     </button>
